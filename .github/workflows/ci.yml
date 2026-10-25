@@ -1,0 +1,19 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  build-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ libsqlite3-dev libsodium-dev cppcheck gcovr
+      - name: Configure (with coverage)
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DLMS_COVERAGE=ON
+      - name: Build
+        run: cmake --build build -j
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
+      - name: Coverage of business logic
+        run: gcovr -r . build --filter 'src/(AuthService|AdminService|CourseworkService|AssessmentService|LatePenalty|Validation|User|TimeUtil)\.cpp' --print-summary
+      - name: Static analysis
+        run: cppcheck --enable=warning,style,performance --error-exitcode=1 --inline-suppr -I include src

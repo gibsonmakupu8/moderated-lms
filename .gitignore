@@ -1,0 +1,10 @@
+build/
+*.db
+*.db-journal
+*.gcda
+*.gcno
+*.gcov
+submissions/
+lms.log
+.vscode/
+.idea/
