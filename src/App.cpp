@@ -288,7 +288,7 @@ void App::markFlow(const User& me) {
 void App::lecturerMenu(const User& me) {
     for (;;) {
         int c = io_.menu("Lecturer", {"My courses", "Create assignment", "View assignments", "Grant individual extension", "View and mark submissions",
-                                      "Send a marked submission for moderation", "View audit trail of a submission", "Change my password", "Log out"});
+                                      "Send a marked submission for moderation", "View audit trail of a submission", "Grant extension to a whole class", "Change my password", "Log out"});
         if (c == 0) return;
         if (!sessionStillValid(me)) return;
         guarded([&] {
@@ -332,7 +332,16 @@ void App::lecturerMenu(const User& me) {
                     break;
                 }
                 case 7: printAudit(me, io_.integer("Submission id: ", 1, 1000000000)); break;
-                case 8: changePassword(me); break;
+                case 8: {
+                    Id a = io_.integer("Assignment id: ", 1, 1000000000);
+                    std::string deadline = io_.requiredLine("New deadline for the whole class (YYYY-MM-DD HH:MM): ");
+                    std::string reason = io_.requiredLine("Reason: ");
+                    ClassExtensionResult r = coursework_.grantClassExtension(me, a, deadline, reason);
+                    io_.say("Extension recorded for " + std::to_string(r.granted) + " student(s)" +
+                            (r.skipped ? "; " + std::to_string(r.skipped) + " already had an equal or later deadline." : "."));
+                    break;
+                }
+                case 9: changePassword(me); break;
                 default: break;
             }
         });
@@ -422,12 +431,13 @@ void App::studentMenu(const User& me) {
                     for (const auto& co : coursework_.coursesFor(me)) io_.say(Console::pad(std::to_string(co.id), 6) + Console::pad(co.code, 10) + co.title);
                     break;
                 case 2: {
-                    io_.say(Console::pad("ID", 6) + Console::pad("Course", 10) + Console::pad("Title", 26) + Console::pad("Deadline", 21) + Console::pad("Max", 8) + "Your status");
+                    io_.say(Console::pad("ID", 6) + Console::pad("Course", 10) + Console::pad("Title", 26) + Console::pad("Your deadline", 21) + Console::pad("Max", 8) + "Your status");
                     for (const auto& v : coursework_.assignmentsFor(me, io_.line("Search (blank = all): "))) {
                         std::string st = v.submissionStatus ? (*v.submissionStatus == SubmissionStatus::Released ? "Result released" : *v.submissionStatus == SubmissionStatus::Late ? "Submitted (late)" : "Submitted") : "Not submitted";
                         io_.say(Console::pad(std::to_string(v.assignment.id), 6) + Console::pad(v.courseCode, 10) + Console::pad(v.assignment.title, 26) +
-                                Console::pad(v.assignment.deadline, 21) + Console::pad(formatMark(v.assignment.maxMark), 8) + st);
+                                Console::pad(v.effectiveDeadline + (v.extended ? "*" : ""), 21) + Console::pad(formatMark(v.assignment.maxMark), 8) + st);
                     }
+                    io_.say("* = your deadline was extended by your lecturer");
                     break;
                 }
                 case 3: {

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(ModeratedLMS VERSION 1.0.0 LANGUAGES CXX)
+project(ModeratedLMS VERSION 1.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -70,7 +70,7 @@ if(LMS_BUILD_TESTS)
     FetchContent_MakeAvailable(googletest)
   endif()
   add_executable(lms_tests
-    tests/test_main.cpp tests/test_system.cpp tests/test_domain.cpp tests/test_repositories.cpp tests/test_auth_admin.cpp
+    tests/test_main.cpp tests/test_cr1.cpp tests/test_system.cpp tests/test_domain.cpp tests/test_repositories.cpp tests/test_auth_admin.cpp
     tests/test_coursework.cpp tests/test_assessment.cpp tests/test_performance.cpp)
   target_include_directories(lms_tests PRIVATE tests)
   target_link_libraries(lms_tests PRIVATE lms_ui GTest::gtest)
