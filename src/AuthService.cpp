@@ -19,6 +19,11 @@ std::unique_ptr<User> AuthService::login(const std::string& username, const std:
     return UserFactory::create(*record);
 }
 
+bool AuthService::isActive(const User& user) const {
+    auto record = users_.findById(user.id());
+    return record && record->active;
+}
+
 void AuthService::changePassword(const User& user, const std::string& oldPassword, const std::string& newPassword) {
     auto record = users_.findById(user.id());
     if (!record) throw NotFoundError("Your account no longer exists.");

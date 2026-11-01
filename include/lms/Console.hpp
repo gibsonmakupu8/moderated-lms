@@ -19,6 +19,8 @@ public:
     std::string line(const std::string& prompt);                 // trimmed, may be empty
     std::string requiredLine(const std::string& prompt);         // re-asks until non-empty
     long long integer(const std::string& prompt, long long min, long long max);
+    // Blank input returns nullopt; anything else must be a whole number in range (re-asks otherwise).
+    std::optional<long long> optionalInteger(const std::string& prompt, long long min, long long max);
     double number(const std::string& prompt);
     bool yesNo(const std::string& prompt);
     std::string password(const std::string& prompt);             // not echoed on a terminal

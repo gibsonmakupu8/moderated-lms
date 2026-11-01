@@ -15,6 +15,8 @@ public:
     // Returns the logged-in user (a Student, Lecturer, ... object). Every failure produces the same
     // message so the response does not reveal whether the username exists.
     std::unique_ptr<User> login(const std::string& username, const std::string& password) const;
+    // True while the account exists and is active (checked before every menu action).
+    bool isActive(const User& user) const;
     void changePassword(const User& user, const std::string& oldPassword, const std::string& newPassword);
 
 private:

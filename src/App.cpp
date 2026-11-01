@@ -4,6 +4,7 @@
 #include <fstream>
 
 #include "lms/TimeUtil.hpp"
+#include "lms/Version.hpp"
 #include "lms/Validation.hpp"
 
 namespace lms {
@@ -35,9 +36,21 @@ void App::guarded(F&& action) {
 
 std::string App::statusText(SubmissionStatus status) { return displayName(status); }
 
+// An administrator may deactivate an account while its owner is logged in; stop the session then.
+bool App::sessionStillValid(const User& me) {
+    try {
+        if (auth_.isActive(me)) return true;
+        io_.error("Your account has been deactivated. You are being logged out.");
+    } catch (const LmsError& e) {
+        log(e.what());
+        io_.error("Could not verify your account. You are being logged out.");
+    }
+    return false;
+}
+
 void App::run() {
     try {
-        io_.say("Moderated Learning Management System v1.0");
+        io_.say(std::string("Moderated Learning Management System v") + kVersion);
         firstRunSetup();
         for (;;) {
             int choice = io_.menu("Welcome", {"Log in", "Exit"});
@@ -125,6 +138,7 @@ void App::adminMenu(const User& me) {
                                            "Edit course", "Assign lecturer to course", "Enrol student in course", "List students of a course",
                                            "Change my password", "Log out"});
         if (c == 0) return;
+        if (!sessionStillValid(me)) return;
         guarded([&] {
             switch (c) {
                 case 1: listUsers(me, std::nullopt); break;
@@ -136,8 +150,7 @@ void App::adminMenu(const User& me) {
                     if (r == 0) break;
                     nu.role = r == 1 ? Role::Admin : r == 2 ? Role::Lecturer : r == 3 ? Role::HoD : Role::Student;
                     if (nu.role == Role::HoD || nu.role == Role::Lecturer || nu.role == Role::Student) {
-                        std::string dept = io_.line("Department id (blank for none): ");
-                        if (!dept.empty()) nu.departmentId = std::stoll(dept);
+                        nu.departmentId = io_.optionalInteger("Department id (blank for none): ", 1, 1000000000);
                     }
                     nu.password = io_.password("Initial password: ");
                     admin_.createUser(me, nu);
@@ -147,8 +160,7 @@ void App::adminMenu(const User& me) {
                 case 3: {
                     Id id = io_.integer("User id: ", 1, 1000000000);
                     std::string name = io_.requiredLine("New full name: ");
-                    std::string dept = io_.line("Department id (blank for none): ");
-                    admin_.updateUser(me, id, name, dept.empty() ? std::nullopt : std::optional<Id>(std::stoll(dept)));
+                    admin_.updateUser(me, id, name, io_.optionalInteger("Department id (blank for none): ", 1, 1000000000));
                     io_.say("User updated.");
                     break;
                 }
@@ -251,10 +263,10 @@ void App::markFlow(const User& me) {
     for (const auto& c : coursework_.coursesFor(me)) io_.say(Console::pad(std::to_string(c.id), 6) + Console::pad(c.code, 10) + c.title);
     Id courseId = io_.integer("Course id: ", 1, 1000000000);
     SubmissionFilter filter;
-    std::string statusText = io_.line("Filter by status (blank = all; e.g. SUBMITTED, LATE, MARKED): ");
-    if (!statusText.empty()) {
-        for (auto& ch : statusText) ch = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
-        filter.status = submissionStatusFromString(statusText);
+    std::string statusFilter = io_.line("Filter by status (blank = all; e.g. SUBMITTED, LATE, MARKED): ");
+    if (!statusFilter.empty()) {
+        for (auto& ch : statusFilter) ch = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
+        filter.status = submissionStatusFromString(statusFilter);
     }
     filter.keyword = io_.line("Search by student/assignment (blank = all): ");
     auto list = assessment_.submissionsForCourse(me, courseId, filter);
@@ -278,6 +290,7 @@ void App::lecturerMenu(const User& me) {
         int c = io_.menu("Lecturer", {"My courses", "Create assignment", "View assignments", "Grant individual extension", "View and mark submissions",
                                       "Send a marked submission for moderation", "View audit trail of a submission", "Change my password", "Log out"});
         if (c == 0) return;
+        if (!sessionStillValid(me)) return;
         guarded([&] {
             switch (c) {
                 case 1:
@@ -361,6 +374,7 @@ void App::hodMenu(const User& me) {
         int c = io_.menu("Head of Department", {"Moderation queue (review, approve, return, adjust)", "Release approved results", "Department courses",
                                                  "Department assignments", "View audit trail of a submission", "Change my password", "Log out"});
         if (c == 0) return;
+        if (!sessionStillValid(me)) return;
         guarded([&] {
             switch (c) {
                 case 1: moderateFlow(me); break;
@@ -401,6 +415,7 @@ void App::studentMenu(const User& me) {
         int c = io_.menu("Student", {"My courses", "My assignments", "Submit or resubmit an assignment", "My submissions and status", "View a released result",
                                      "Change my password", "Log out"});
         if (c == 0) return;
+        if (!sessionStillValid(me)) return;
         guarded([&] {
             switch (c) {
                 case 1:

@@ -1,5 +1,6 @@
 #include "lms/Console.hpp"
 
+#include <cerrno>
 #include <cstdlib>
 #include <iostream>
 #include <limits>
@@ -40,6 +41,18 @@ long long Console::integer(const std::string& prompt, long long min, long long m
         long long value = std::strtoll(text.c_str(), &end, 10);
         if (!text.empty() && end && *end == '\0' && errno == 0 && value >= min && value <= max) return value;
         error("Please enter a whole number from " + std::to_string(min) + " to " + std::to_string(max) + ".");
+    }
+}
+
+std::optional<long long> Console::optionalInteger(const std::string& prompt, long long min, long long max) {
+    for (;;) {
+        std::string text = line(prompt);
+        if (text.empty()) return std::nullopt;
+        char* end = nullptr;
+        errno = 0;
+        long long value = std::strtoll(text.c_str(), &end, 10);
+        if (end && *end == '\0' && errno == 0 && value >= min && value <= max) return value;
+        error("Please enter a whole number from " + std::to_string(min) + " to " + std::to_string(max) + ", or leave it blank.");
     }
 }
 

@@ -10,3 +10,9 @@
 9. Passwords are only handled by `IPasswordHasher`; never stored, logged or echoed.
 10. Every business rule has a unit test; every use-case flow has an integration test including its exception flows.
 11. Git: feature branches, pull-request review, meaningful commit messages ("Add ...", "Fix ..."), tagged releases (`v1.0`).
+
+## Branching strategy
+* `main` always builds and passes all tests; it only receives merges through pull requests.
+* One short-lived branch per change: `feature/<topic>`, `fix/<topic>`, `release/<version>`.
+* A pull request needs: green CI (build + tests + cppcheck), a self-review against `docs/CODE_REVIEW_CHECKLIST.md`, and a description linking the requirement or change request.
+* Merge with `--no-ff` so each feature stays visible in history. Releases are annotated tags `vMAJOR.MINOR` on `main`.

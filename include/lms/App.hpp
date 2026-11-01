@@ -29,6 +29,7 @@ private:
 
     // helpers
     template <typename F> void guarded(F&& action);
+    bool sessionStillValid(const User& me);
     void changePassword(const User& me);
     void listUsers(const User& me, std::optional<Role> role);
     void listCourses(const User& me);
