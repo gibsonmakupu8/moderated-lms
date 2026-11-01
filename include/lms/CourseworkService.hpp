@@ -15,6 +15,13 @@ struct AssignmentView {
     Assignment assignment;
     std::string courseCode;
     std::optional<SubmissionStatus> submissionStatus;  // only filled for students
+    std::string effectiveDeadline;                     // for a student: own deadline incl. extension (CR1)
+    bool extended = false;                             // true when the student's deadline is later than the original
+};
+
+struct ClassExtensionResult {
+    int granted = 0;  // students who received the new deadline
+    int skipped = 0;  // students who already had the same or a later deadline
 };
 
 struct SubmissionReceipt {
@@ -37,6 +44,9 @@ public:
     Id createAssignment(const User& lecturer, Id courseId, const std::string& title, const std::string& description,
                         const std::string& deadline, double maxMark);
     Id grantExtension(const User& lecturer, Id assignmentId, Id studentId, const std::string& newDeadline, const std::string& reason);
+
+    // CR1: one new deadline for every student enrolled in the assignment's course.
+    ClassExtensionResult grantClassExtension(const User& lecturer, Id assignmentId, const std::string& newDeadline, const std::string& reason);
 
     // The deadline that applies to this student: the original one, or a later approved extension.
     std::string effectiveDeadline(const Assignment& assignment, Id studentId) const;

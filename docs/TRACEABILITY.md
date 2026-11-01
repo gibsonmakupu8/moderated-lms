@@ -9,6 +9,8 @@
 | FR-05 | AdminService::assignLecturer/enrolStudent | course_lecturers, enrolments | LecturerAssignmentAndEnrolmentRules |
 | FR-06 | CourseworkService::createAssignment | assignments | LecturerCreatesAssignmentWithValidation |
 | FR-07 | CourseworkService::grantExtension | extensions | ExtensionRulesAndEffectiveDeadline |
+| FR-07b (CR1) | CourseworkService::grantClassExtension | extensions | CR1_ClassExtension... (7 tests), ST17, ST18 |
+| FR-08a (CR1) | AssignmentView::effectiveDeadline/extended; App student list | extensions | CR1_ExtendedDeadlineShownOnStudentAssignmentListOnly, ST17 |
 | FR-08 | CourseworkService::assignmentsFor | assignments, enrolments | VisibleCoursesAndAssignmentsFollowTheRole |
 | FR-09 | CourseworkService::submit / history | submissions | OnTimeSubmission..., ResubmissionBeforeDeadline..., ResubmissionAfterDeadlineIsRefused |
 | FR-10 | CourseworkService::submit (effective deadline) | submissions, extensions | ExtensionMakesLateWorkOnTime |
@@ -26,3 +28,7 @@
 | NFR-06 | Local SQLite file, no network code; backup in BUILD_GUIDE | - | (inspection) |
 | NFR-08 | AuditEntry (actor, time, old/new, reason) | audit_entries | ReturnForCorrectionLoop |
 | NFR-10 | Ownership checks, uniform "not available" message | - | StudentsCannotSeeEachOthersResults |
+
+
+## System and acceptance tests (tests/test_system.cpp, tests/test_cr1.cpp)
+ST01-ST06 -> UC-01 (submit: main, late, very late, resubmission, exceptions, extension); ST07-ST09 -> UC-02/UC-03 (mark, moderate, return, release, validation); ST10-ST16 -> login, input handling, administration, role menus; ST17-ST19 -> CR1 and regression.

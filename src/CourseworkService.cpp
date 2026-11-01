@@ -65,6 +65,42 @@ Id CourseworkService::grantExtension(const User& lecturer, Id assignmentId, Id s
     return extensions_.insert(extension);
 }
 
+ClassExtensionResult CourseworkService::grantClassExtension(const User& lecturer, Id assignmentId, const std::string& newDeadline,
+                                                            const std::string& reason) {
+    requirePermission(lecturer, Permission::GrantExtension);
+    Assignment assignment = requireAssignment(assignmentId);
+    if (!courses_.isLecturerAssigned(assignment.courseId, lecturer.id())) throw PermissionError("You are not assigned to that course.");
+
+    const long long requested = parseTimestamp(newDeadline);
+    if (requested <= parseTimestamp(assignment.deadline)) {
+        throw ValidationError("The class deadline must be later than the assignment's original deadline.");
+    }
+    const std::string cleanReason = "Class extension: " + requireText(reason, "Reason", 480);
+    const std::string now = clock_.nowString();
+    const std::string formatted = formatTimestamp(requested);
+
+    ClassExtensionResult result;
+    tx_.runInTransaction([&] {  // all students or none
+        for (const auto& student : enrolments_.studentsOf(assignment.courseId)) {
+            if (requested <= parseTimestamp(effectiveDeadline(assignment, student.id))) {
+                ++result.skipped;  // already has the same or a later deadline
+                continue;
+            }
+            Extension extension;
+            extension.assignmentId = assignmentId;
+            extension.studentId = student.id;
+            extension.newDeadline = formatted;
+            extension.reason = cleanReason;
+            extension.grantedBy = lecturer.id();
+            extension.grantedAt = now;
+            extensions_.insert(extension);
+            ++result.granted;
+        }
+        if (result.granted == 0) throw BusinessRuleError("Every enrolled student already has that deadline or a later one; nothing was changed.");
+    });
+    return result;
+}
+
 std::vector<Course> CourseworkService::coursesFor(const User& user) const {
     switch (user.role()) {
         case Role::Student: return courses_.findByStudent(user.id());
@@ -82,10 +118,12 @@ std::vector<AssignmentView> CourseworkService::assignmentsFor(const User& user, 
     auto addAll = [&](const std::vector<Assignment>& list, const std::string& courseCode) {
         for (const auto& a : list) {
             if (!needle.empty() && !containsIgnoreCase(a.title, needle) && !containsIgnoreCase(courseCode, needle)) continue;
-            AssignmentView view{a, courseCode, std::nullopt};
+            AssignmentView view{a, courseCode, std::nullopt, a.deadline, false};
             if (user.role() == Role::Student) {
                 auto latest = submissions_.findLatest(a.id, user.id());
                 if (latest) view.submissionStatus = latest->status;
+                view.effectiveDeadline = effectiveDeadline(a, user.id());  // CR1: show extensions on the list
+                view.extended = view.effectiveDeadline != a.deadline;
             }
             views.push_back(view);
         }
