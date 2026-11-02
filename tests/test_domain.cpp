@@ -6,6 +6,7 @@
 #include "lms/TimeUtil.hpp"
 #include "lms/User.hpp"
 #include "lms/Validation.hpp"
+#include <cmath>
 
 using namespace lms;
 
