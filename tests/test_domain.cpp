@@ -1,7 +1,7 @@
 // Unit tests of pure domain rules: time parsing, late penalty (boundary value analysis),
 // state machine, validation. No database involved.
 #include <gtest/gtest.h>
-
+#include <cmath>
 #include "lms/LatePenalty.hpp"
 #include "lms/TimeUtil.hpp"
 #include "lms/User.hpp"
